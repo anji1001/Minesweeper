@@ -1,34 +1,26 @@
-import { forwardRef, useImperativeHandle, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import refreshSvg from "../../assets/refresh.svg";
 
-const ResultModal = forwardRef(function GameOver(
-  { gameResult, handleResetGame },
-  ref
-) {
-  console.log("game over");
-  let gameOverRef = useRef();
-  useImperativeHandle(
-    ref,
-    () => {
-      return {
-        open() {
-          gameOverRef.current.showModal();
-        },
-        close() {
-          gameOverRef.current.close();
-        },
-      };
-    },
-    []
-  );
+const ResultModal = function GameOver({ gameResult, handleResetGame }) {
+  const gameResultRef = useRef(null);
+  useEffect(() => {
+    if (gameResultRef.current) {
+      if (gameResult) {
+        gameResultRef.current.showModal();
+      } else {
+        gameResultRef.current.close();
+      }
+    }
+  }, [gameResult, gameResultRef.current]);
 
   return createPortal(
     <dialog
-      ref={gameOverRef}
+      ref={gameResultRef}
+      onClose={handleResetGame}
       className="p-3 h-32 w-60 p-3 h-32 w-60 bg-lime-500 rounded-lg "
     >
-      {gameResult && (
+      {
         <>
           <h2 className="font-bold text-center mt-2">{gameResult}</h2>
 
@@ -43,10 +35,10 @@ const ResultModal = forwardRef(function GameOver(
             </button>
           </form>
         </>
-      )}
+      }
     </dialog>,
     document.getElementById("modal")
   );
-});
+};
 
 export default ResultModal;

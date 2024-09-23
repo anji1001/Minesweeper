@@ -29,11 +29,9 @@ export default function Dimensions() {
   const [grid, setGrid] = useState({});
   const [isFirstClick, setFirstClick] = useState(true);
   const [gameResult, setGameResult] = useState("");
-  const [mines, setMines] = useState([]);
   const [stopTimer, setStopTimer] = useState(false);
   const [flags, setFlags] = useState(10);
 
-  let resultModalRef = useRef(null);
   useEffect(() => {
     if (formValues) {
       createGrid(formValues);
@@ -48,7 +46,15 @@ export default function Dimensions() {
   }
 
   function createGrid({ rows, cols, minesCount }) {
-    if (rows >= 4 && cols >= 4 && minesCount >= 1 && minesCount < rows * cols) {
+    setFirstClick(true);
+    setGameResult("");
+    setFlags(10);
+    if (
+      rows >= 10 &&
+      cols >= 8 &&
+      minesCount >= 10 &&
+      minesCount < rows * cols
+    ) {
       let obj = {};
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
@@ -61,17 +67,20 @@ export default function Dimensions() {
   }
 
   function updateGridOnFirstClick(key) {
+    const gridKeys = Object.keys(grid).sort((a, b) => {
+      const num1 = a.split(" ");
+      const num2 = b.split(" ");
+      return num1[0] - num2[0];
+    });
+    const gridMax = gridKeys[gridKeys.length - 1].split(" ");
+    const gridMaxX = +gridMax[0];
+    const gridMaxY = +gridMax[1];
     let nearestPositions = getNearestPositionsCount(key);
 
     while (
       nearestPositions.filter((position) => {
         const [i, j] = position.split(" ").map(Number);
-        return (
-          i === 0 ||
-          j === 0 ||
-          i === formValues.row - 1 ||
-          j === formValues.cols - 1
-        );
+        return i === 0 || j === 0 || i === gridMaxX || j === gridMaxY;
       }).length < 4
     ) {
       let x = Math.floor(Math.random() * nearestPositions.length);
@@ -115,7 +124,6 @@ export default function Dimensions() {
         let randomkey = Math.floor(Math.random() * finalPositions.length);
         console.log(finalPositions[randomkey]);
         obj[finalPositions[randomkey]] = true;
-        setMines((prev) => [...prev, finalPositions[randomkey]]);
       }
     }
 
@@ -126,9 +134,7 @@ export default function Dimensions() {
           count++;
         }
       });
-      // if (count !== 0) {
       obj[value] = count;
-      // }
     }
 
     console.log(obj);
@@ -139,7 +145,6 @@ export default function Dimensions() {
     if (gameResult) {
       return;
     }
-    console.log(key);
     if (isFirstClick) {
       updateGridOnFirstClick(key);
       setFirstClick(false);
@@ -148,7 +153,6 @@ export default function Dimensions() {
     if (grid[key] === true) {
       setStopTimer(true);
       setGameResult("You lost!!");
-      resultModalRef.current.open();
       return;
     }
     if (grid[key]) {
@@ -157,20 +161,19 @@ export default function Dimensions() {
 
     setGrid((prev) => {
       const nearestPositions = getNearestPositionsCount(key);
-      const hasFalseValues = Object.values(prev).filter(
-        (value) => value === false
-      );
-      if (hasFalseValues.length === 1) {
-        setStopTimer(true);
-        setGameResult("You Won!!");
-        resultModalRef.current.open();
-      }
       let count = 0;
       nearestPositions.forEach((position) => {
         if (grid[position] === true) {
           count++;
         }
       });
+      const hasFalseValues = Object.values(prev).filter(
+        (value) => value === false
+      );
+      if (hasFalseValues.length === 1) {
+        setStopTimer(true);
+        setGameResult("You Won!!");
+      }
       return { ...prev, [key]: count };
     });
   }
@@ -180,7 +183,7 @@ export default function Dimensions() {
     setGrid((prev) => {
       if (prev[key] === "flag") {
         setFlags((prevFlags) => prevFlags + 1);
-        if (mines.includes(key)) {
+        if (Object.values(prev).includes(key)) {
           console.log(key);
           return { ...prev, [key]: true };
         }
@@ -205,12 +208,12 @@ export default function Dimensions() {
       -(-i) + 1 + " " + (-(-j) + 1),
     ];
     const nearestPositions = arr.filter((position) => {
-      const [x, y] = position.split(" ");
+      const [x, y] = position.split(" ").map(Number);
       if (
-        Number(x) >= 0 &&
-        Number(x) < Number(formValues.rows) &&
-        Number(y) >= 0 &&
-        Number(y) < Number(formValues.cols) &&
+        x >= 0 &&
+        x < formValues.rows &&
+        y >= 0 &&
+        y < formValues.cols &&
         x + " " + y !== key
       ) {
         return true;
@@ -223,8 +226,6 @@ export default function Dimensions() {
   }
 
   const handleResetGame = useCallback(() => {
-    resultModalRef.current.close();
-    console.log("here");
     setGrid({});
     setFormValues({
       rows: 10,
@@ -233,8 +234,6 @@ export default function Dimensions() {
     });
     setFirstClick(true);
     setGameResult("");
-    setMines([]);
-    setStopTimer(false);
     setFlags(10);
   });
 
@@ -242,7 +241,7 @@ export default function Dimensions() {
     <div className="flex items-center justify-center min-h-screen">
       <div className=" border-solid border-2 border-indigo-600 rounded-lg ">
         <div className="mt-10 p-5">
-          <form className="flex">
+          <form className="flex flex-col sm:flex-col md:flex-row lg:flex-row xl:flex-row">
             <div className="mr-4">
               <label
                 htmlFor="rows"
@@ -310,29 +309,22 @@ export default function Dimensions() {
               </div>
             </div>
           </form>
-
-          <div
-            className="flex items-center text-white bg-lime-800 mt-10 p-2 h-full"
-            style={{
-              width: "570px",
-            }}
-          >
+          <div className="justify-center flex flex-col sm:flex-col md:flex-row lg:flex-row xl:flex-row items-center text-white bg-lime-800 mt-10 p-2 h-full">
             <Flags flags={flags} />
             <Timer stopTimer={stopTimer} isFirstClick={isFirstClick} />
           </div>
 
-          <ResultModal
-            gameResult={gameResult}
-            handleResetGame={handleResetGame}
-            ref={resultModalRef}
-          />
+          {gameResult && (
+            <ResultModal
+              gameResult={gameResult}
+              handleResetGame={handleResetGame}
+            />
+          )}
           <div
             style={{
               gridTemplateColumns: `repeat(${formValues?.cols}, minmax(0, 1fr))`,
-              width: "570px",
-              height: "500px",
             }}
-            className="grid place-content-center h-48"
+            className="h-full grid place-content-center "
           >
             {grid &&
               Object.keys(grid)
@@ -372,7 +364,7 @@ export default function Dimensions() {
                         grid[value] !== 0 &&
                         grid[value] !== "flag" &&
                         grid[value] !== true && (
-                          <div className="GridEmpty font-extrabold flex justify-center items-center ">
+                          <div className="grid-cell font-extrabold flex justify-center items-center ">
                             {grid[value]}
                           </div>
                         )}
