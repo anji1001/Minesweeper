@@ -1,10 +1,10 @@
-import './App.css';
-import Dimensions from './Dimensions/Dimensions'
+import "./App.css";
+import Dimensions from "./components/Dimensions/Dimensions";
 
 function App() {
   return (
     <>
-    <Dimensions/>
+      <Dimensions />
     </>
   );
 }
