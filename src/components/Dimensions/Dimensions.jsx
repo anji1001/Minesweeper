@@ -200,7 +200,7 @@ export default function Dimensions() {
       const nearestPositions = getNearestPositionsCount(key);
       let count = 0;
       nearestPositions.forEach((position) => {
-        if (grid[position] === true) {
+        if (mines.includes(position)) {
           count++;
         }
       });
