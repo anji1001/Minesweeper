@@ -21,6 +21,7 @@ export default function Timer({ isFirstClick, stopTimer }) {
       setTimer(0);
     }
     return () => {
+      setTimer(0);
       clearInterval(interval);
     };
   }, [isFirstClick, stopTimer]);

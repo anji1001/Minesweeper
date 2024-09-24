@@ -31,6 +31,7 @@ export default function Dimensions() {
   const [gameResult, setGameResult] = useState("");
   const [stopTimer, setStopTimer] = useState(false);
   const [flags, setFlags] = useState(10);
+  const [mines, setMines] = useState([]);
 
   useEffect(() => {
     if (formValues) {
@@ -48,7 +49,8 @@ export default function Dimensions() {
   function createGrid({ rows, cols, minesCount }) {
     setFirstClick(true);
     setGameResult("");
-    setFlags(10);
+    setFlags(minesCount);
+    setMines([]);
     if (
       rows >= 10 &&
       cols >= 8 &&
@@ -105,28 +107,43 @@ export default function Dimensions() {
       );
     });
     let finalPositions = [];
-    console.log(borderPoints);
     for (let i = 0; i < borderPoints.length; i++) {
       finalPositions.push(...getNearestPositionsCount(borderPoints[i]));
     }
+    finalPositions = Array.from(new Set(finalPositions));
     finalPositions = finalPositions.filter(
       (position) =>
         !nearestPositions.includes(position) && !borderPoints.includes(position)
     );
-    console.log(new Set(finalPositions));
-    let obj = {},
-      k = 0;
-    if (
-      formValues.minesCount <
-      formValues.rows * formValues.cols - finalPositions.length
-    ) {
-      while (Object.keys(obj).length < formValues.minesCount) {
-        let randomkey = Math.floor(Math.random() * finalPositions.length);
-        console.log(finalPositions[randomkey]);
-        obj[finalPositions[randomkey]] = true;
-      }
+    let obj = {};
+
+    for (let i = 0; i < formValues.minesCount; i++) {
+      let randomkey = Math.floor(Math.random() * finalPositions.length);
+      obj[finalPositions[randomkey]] = true;
     }
 
+    const elementsToExclude = new Set();
+
+    nearestPositions.forEach((element) => elementsToExclude.add(element));
+    Object.keys(obj).forEach((element) => elementsToExclude.add(element));
+
+    let result = gridKeys.filter((element) => !elementsToExclude.has(element));
+    let newObj = {};
+    for (let i = 0; i < result.length; i++) {
+      newObj[result[i]] = false;
+    }
+    const remainingKeysCount = formValues.minesCount - Object.keys(obj).length;
+
+    for (let i = 0; i < remainingKeysCount; i++) {
+      newObj[gridKeys[i]] = true;
+    }
+
+    obj = { ...obj, ...shuffleObjectValues(newObj) };
+    Object.keys(obj).forEach((key) => {
+      if (obj[key]) {
+        setMines((prev) => [...prev, key]);
+      }
+    });
     for (const value of nearestPositions) {
       let count = 0;
       getNearestPositionsCount(value).forEach((position) => {
@@ -136,9 +153,25 @@ export default function Dimensions() {
       });
       obj[value] = count;
     }
-
-    console.log(obj);
     setGrid((prev) => ({ ...prev, ...obj }));
+  }
+
+  function shuffleObjectValues(obj) {
+    const values = Object.values(obj);
+
+    for (let i = values.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [values[i], values[j]] = [values[j], values[i]];
+    }
+
+    const shuffledObj = {};
+    const keys = Object.keys(obj);
+
+    keys.forEach((key, index) => {
+      shuffledObj[key] = values[index];
+    });
+
+    return shuffledObj;
   }
 
   function handleCellUpdate(key) {
@@ -152,6 +185,10 @@ export default function Dimensions() {
     }
     if (grid[key] === true) {
       setStopTimer(true);
+      for (let i = 0; i < mines.length; i++) {
+        console.log(mines);
+        setGrid((prev) => ({ ...prev, [mines[i]]: true }));
+      }
       setGameResult("You lost!!");
       return;
     }
@@ -183,7 +220,7 @@ export default function Dimensions() {
     setGrid((prev) => {
       if (prev[key] === "flag") {
         setFlags((prevFlags) => prevFlags + 1);
-        if (Object.values(prev).includes(key)) {
+        if (Object.keys(prev).includes(key)) {
           console.log(key);
           return { ...prev, [key]: true };
         }
